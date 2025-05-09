@@ -1,3 +1,13 @@
+"""
+Application setup utilities for Telegraph.
+
+Contains functions to:
+- Initialize application state.
+- Load configuration.
+- Prepare template and output directories.
+"""
+
+
 import shutil
 from pathlib import Path
 

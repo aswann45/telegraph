@@ -1,3 +1,14 @@
+"""
+Template handling models for Telegraph.
+
+Defines:
+- `TemplateContext`: a dynamic Pydantic model for Jinja context data.
+- `EmailTemplate`: ties together subject/text/HTML template filenames with context.
+- `TemplateRenderer`: wraps Jinja2 environment setup.
+- `render()` methods to produce `EmailContent` from templates.
+"""
+
+
 from __future__ import annotations
 
 from collections.abc import Sequence

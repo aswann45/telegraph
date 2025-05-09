@@ -1,3 +1,12 @@
+"""
+Base classes and functions for mail-merge pipelines.
+
+Defines:
+- `PipelineStep`, `Pipeline`, and `Context` abstractions.
+- Common utilities for iterating through data records and rendering/sending emails.
+"""
+
+
 import json
 from collections.abc import Sequence
 from pathlib import Path

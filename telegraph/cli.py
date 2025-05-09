@@ -1,3 +1,13 @@
+"""
+Command-line interface for Telegraph, powered by Typer.
+
+Defines commands and options for:
+- Rendering templates to files.
+- Running mail-merge pipelines.
+- Sending emails via SMTP.
+"""
+
+
 from typing import Annotated
 
 import typer

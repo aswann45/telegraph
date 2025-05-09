@@ -1,3 +1,13 @@
+"""
+Pydantic models for email content.
+
+Includes:
+- `EmailContent`: subject, body (plain + HTML), recipients, CC/BCC, reply-to, attachments.
+- `SMTPClient`: Context manager for SMTP connection and sending email content.
+- Validation logic for required fields and attachment paths.
+"""
+
+
 import mimetypes
 import smtplib
 import ssl

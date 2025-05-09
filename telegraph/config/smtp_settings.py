@@ -1,3 +1,12 @@
+"""
+SMTP configuration for Telegraph.
+
+Provides a Pydantic BaseSettings model that loads:
+- Host, port, username, password, and TLS flags.
+- Environment variables, YAML files, and file secrets.
+"""
+
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
