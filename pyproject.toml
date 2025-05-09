@@ -1,5 +1,5 @@
 [project]
-name = "telegraph"
+name = "telegraph-emails"
 version = "0.1.0"
 description = ""
 authors = [
@@ -28,6 +28,11 @@ telegraph = "telegraph.main:cli"
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+packages = [
+    { include = "telegraph" }
+]
 
 [tool.poetry.group.dev]
 optional = true
