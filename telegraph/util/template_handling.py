@@ -1,3 +1,12 @@
+"""
+Template loading and rendering utilities.
+
+Provides:
+- Functions to auto-discover templates in a directory.
+- Helpers to convert rendered HTML to plain-text when needed.
+"""
+
+
 import html2text
 
 

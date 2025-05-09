@@ -1,3 +1,12 @@
+"""
+File handling utilities for Telegraph.
+
+Offers:
+- Readers for CSV, JSON, YAML, and Excel files returning uniform dict/list structures.
+- Helpers to resolve paths, watch for changes, and normalize file contents.
+"""
+
+
 import csv
 import json
 from pathlib import Path

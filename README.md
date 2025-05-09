@@ -14,10 +14,10 @@ rendering
 To install Telegraph from PyPi, run the following commands:
 
 ```bash
-pip install telegraph
+pip install telegraph-emails
 telegraph init
 ```
-Or from source:
+Or from source using Poetry:
 ```bash
 git clone https://github.com/aswann45/telegraph.git
 cd telegraph

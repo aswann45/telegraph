@@ -1,7 +1,7 @@
 [project]
-name = "telegraph"
-version = "0.1.0"
-description = ""
+name = "telegraph-emails"
+version = "0.1.1"
+description = "Lightweight mail merge utility using Pydantic and Jinja."
 authors = [
     {name = "Alex",email = "aswann@protonmail.com"}
 ]
@@ -25,9 +25,21 @@ dependencies = [
 [project.scripts]
 telegraph = "telegraph.main:cli"
 
+[project.urls]
+repository = "https://github.com/aswann45/telegraph"
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+packages = [
+    { include = "telegraph" }
+]
+include = [
+    { path = "tests", format = "sdist" },
+    { path = "scripts", format = "sdist" },
+]
 
 [tool.poetry.group.dev]
 optional = true

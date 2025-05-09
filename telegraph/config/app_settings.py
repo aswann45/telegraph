@@ -1,3 +1,13 @@
+"""
+Application settings for Telegraph.
+
+Defines Pydantic models that control:
+- Template directory locations.
+- Default rendering options.
+- Pipeline behavior and defaults.
+"""
+
+
 from pathlib import Path
 from typing import Self
 
