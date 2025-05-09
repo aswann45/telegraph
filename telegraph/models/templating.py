@@ -8,7 +8,6 @@ Defines:
 - `render()` methods to produce `EmailContent` from templates.
 """
 
-
 from __future__ import annotations
 
 from collections.abc import Sequence

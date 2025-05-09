@@ -7,7 +7,6 @@ Defines:
 - Factory methods to render models into EmailContent instances.
 """
 
-
 from .emails import EmailContent, SMTPClient
 from .templating import EmailTemplate, TemplateContext, TemplateRenderer
 

@@ -7,7 +7,6 @@ Contains functions to:
 - Prepare template and output directories.
 """
 
-
 import shutil
 from pathlib import Path
 

@@ -7,7 +7,6 @@ Includes:
 - Validation logic for required fields and attachment paths.
 """
 
-
 import mimetypes
 import smtplib
 import ssl

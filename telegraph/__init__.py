@@ -8,7 +8,6 @@ This package provides:
 - A CLI for mail-merge workflows.
 """
 
-
 from .config import Settings
 from .models import (
     EmailContent,

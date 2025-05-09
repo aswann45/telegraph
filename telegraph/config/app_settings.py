@@ -7,7 +7,6 @@ Defines Pydantic models that control:
 - Pipeline behavior and defaults.
 """
 
-
 from pathlib import Path
 from typing import Self
 

@@ -6,7 +6,6 @@ Provides a Pydantic BaseSettings model that loads:
 - Environment variables, YAML files, and file secrets.
 """
 
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

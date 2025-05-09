@@ -6,7 +6,6 @@ Defines:
 - Common utilities for iterating through data records and rendering/sending emails.
 """
 
-
 import json
 from collections.abc import Sequence
 from pathlib import Path

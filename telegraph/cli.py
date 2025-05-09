@@ -7,7 +7,6 @@ Defines commands and options for:
 - Sending emails via SMTP.
 """
 
-
 from typing import Annotated
 
 import typer

@@ -6,7 +6,6 @@ Offers:
 - Helpers to resolve paths, watch for changes, and normalize file contents.
 """
 
-
 import csv
 import json
 from pathlib import Path

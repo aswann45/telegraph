@@ -7,7 +7,6 @@ Provides:
 - Template discovery and rendering utilities.
 """
 
-
 from .app_setup import initial_setup, new_project_setup
 from .file_handling import read_file
 
