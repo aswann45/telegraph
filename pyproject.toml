@@ -1,0 +1,41 @@
+[project]
+name = "telegraph"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Alex",email = "aswann@protonmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic (>=2.11.4,<3.0.0)",
+    "pydantic-settings[yaml] (>=2.9.1,<3.0.0)",
+    "types-pyyaml (>=6.0.12.20250402,<7.0.0.0)",
+    "jinja2 (>=3.1.6,<4.0.0)",
+    "html2text (>=2025.4.15,<2026.0.0)",
+    "pytest (>=8.3.5,<9.0.0)",
+    "hypothesis (>=6.131.9,<7.0.0)",
+    "coverage (>=7.8.0,<8.0.0)",
+    "pandas (>=2.2.3,<3.0.0)",
+    "pandas-stubs (>=2.2.3.250308,<3.0.0.0)",
+    "openpyxl (>=3.1.5,<4.0.0)",
+    "typer (>=0.15.3,<0.16.0)"
+]
+
+[project.scripts]
+telegraph = "telegraph.main:cli"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.5"
+hypothesis = "^6.131.9"
+coverage = "^7.8.0"
+types-pyyaml = "^6.0.12.20250402"
+pandas-stubs = "^2.2.3.250308"
+

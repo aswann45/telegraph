@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -e
+
+cd "$(dirname "$0")"/../
+
+ruff check telegraph --select I --fix
+ruff format telegraph
+ruff check tests --select I --fix
+ruff format tests 
+ruff check projects --select I --fix
+ruff format projects 

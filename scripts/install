@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -e
+
+cd "$(dirname "$0")"/../
+
+scripts/build
+
+if which pipx >/dev/null 2>&1; then
+    pipx install -f ./dist/telegraph*.whl
+else
+    pip install ./dist/telegraph*.whl
+fi
