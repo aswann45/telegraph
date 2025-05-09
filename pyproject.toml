@@ -38,7 +38,7 @@ packages = [
 ]
 include = [
     { path = "tests", format = "sdist" },
-    { path = "scripts", foramt = "sdist" },
+    { path = "scripts", format = "sdist" },
 ]
 
 [tool.poetry.group.dev]
