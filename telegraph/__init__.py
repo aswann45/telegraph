@@ -8,28 +8,29 @@ This package provides:
 - A CLI for mail-merge workflows.
 """
 
-from .config import Settings
+from .config import AppSettings, ProjectSettings
 from .models import (
-    EmailContent,
-    EmailTemplate,
-    SMTPClient,
-    TemplateContext,
-    TemplateRenderer,
+    Context,
+    Email,
 )
+from .smtp_client import SMTPClient
+from .templating import EmailTemplate, TemplateRenderer
 from .util import (
-    initial_setup,
+    app_setup,
     new_project_setup,
-    read_file,
+    read_data_file,
 )
 
 __all__ = [
-    "EmailContent",
+    "Email",
     "EmailTemplate",
-    "Settings",
+    "AppSettings",
+    "ProjectSettings",
     "SMTPClient",
-    "TemplateContext",
+    "Context",
     "TemplateRenderer",
     "initial_setup",
     "new_project_setup",
-    "read_file",
+    "read_data_file",
+    "app_setup",
 ]

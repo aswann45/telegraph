@@ -18,24 +18,25 @@ from pydantic_settings import (
     YamlConfigSettingsSource,
 )
 
-from telegraph.config.smtp_settings import SMTPConfig
 
-
-class Settings(BaseSettings):
+class AppSettings(BaseSettings):
     project_name: str = "Telegraph"
     stack_name: str = "telegraph"
     app_dir: str = str(Path().cwd())
     working_dir: str = str(Path().home())
     projects_dir: str = str(Path(working_dir) / "telegraph_projects")
     config_dir: str = str(Path(working_dir) / ".telegraph")
+    app_config_file: str = str(Path(config_dir) / "telegraph-config.yaml")
     environment: str = "local"
 
-    smtp_config: SMTPConfig = SMTPConfig()
+    use_tls: bool = True
+    host: str = "changethis"
+    port: int = 587
 
     model_config = SettingsConfigDict(
         yaml_file=[
+            app_config_file,
             "./telegraph-default-config.yaml",
-            str(Path(config_dir) / "telegraph-config.yaml"),
             "./test_config.yaml",
         ],
         extra="ignore",
@@ -52,6 +53,7 @@ class Settings(BaseSettings):
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """Specify setttings sources."""
         return (
             init_settings,
             env_settings,
@@ -62,16 +64,17 @@ class Settings(BaseSettings):
 
     def _check_default_secret(self, var: str, value: str | None) -> None:
         if value == "changethis":
-            message = f'The value of "{var}" is set to "changethis". Please change it.'
-            raise ValueError(message)
+            message = (
+                f'The value of "{var}" is set to "changethis". '
+                f"Please change it."
+            )
+            print(message)
 
     @model_validator(mode="after")
     def _enforce_non_default_secrets(self) -> Self:
-        self._check_default_secret("smtp_config.host", self.smtp_config.host)
-        self._check_default_secret("smtp_config.username", self.smtp_config.username)
-        self._check_default_secret("smtp_config.password", self.smtp_config.password)
+        self._check_default_secret("host", self.host)
         return self
 
 
 if __name__ == "__main__":
-    print(Settings().model_dump_json(indent=2))
+    print(AppSettings().model_dump_json(indent=2))

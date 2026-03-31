@@ -82,7 +82,9 @@ def read_json_file(path: Path) -> list[dict[str, Any]]:
             raise ValueError("JSON root must be a dict or list of dicts")
 
 
-def read_excel_file(path: Path, sheet_name: str | int = 0) -> list[dict[str, Any]]:
+def read_excel_file(
+    path: Path, sheet_name: str | int = 0
+) -> list[dict[str, Any]]:
     """
     Read an Excel file into a list of dictionaries.
 
@@ -102,14 +104,16 @@ def read_excel_file(path: Path, sheet_name: str | int = 0) -> list[dict[str, Any
     return cast(list[dict[str, Any]], df.to_dict(orient="records"))
 
 
-def read_file(path: Path, **kwargs) -> list[dict[str, Any]]:
-    if path.suffix == "csv":
+def read_data_file(path: Path, **kwargs: Any) -> list[dict[str, Any]]:
+    print("data file path:", path)
+    print("data file path suffix:", path.suffix)
+    if path.suffix == ".csv":
         return read_csv_file(path)
-    elif path.suffix == "json":
+    elif path.suffix == ".json":
         return read_json_file(path)
-    elif path.suffix == "xlsx" or "xls":
+    elif "xls" in path.suffix:
         return read_excel_file(path, **kwargs)
-    elif path.suffix == "yaml":
-        return read_yaml_file
+    elif path.suffix == ".yaml":
+        return read_yaml_file(path)
     else:
         raise ValueError(f"{path.suffix} files not supported.")

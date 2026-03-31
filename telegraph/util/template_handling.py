@@ -49,7 +49,8 @@ def discover_templates(
     template_dir : Path
         Directory in which to search for templates.
     suffixes : list of str, optional
-        File extensions to include (including the dot). Defaults to [".j2", ".jinja2"].
+        File extensions to include (including the dot). Defaults to [".j2",
+        ".jinja2"].
     recursive : bool, optional
         Whether to search subdirectories recursively. Defaults to True.
 

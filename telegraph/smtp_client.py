@@ -1,70 +1,11 @@
-"""
-Pydantic models for email content.
-
-Includes:
-- `EmailContent`: subject, body (plain + HTML), recipients, CC/BCC, reply-to, attachments.
-- `SMTPClient`: Context manager for SMTP connection and sending email content.
-- Validation logic for required fields and attachment paths.
-"""
-
 import mimetypes
 import smtplib
 import ssl
-from collections.abc import Sequence
 from email.message import EmailMessage
-from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
-
-from telegraph.config.smtp_settings import SMTPConfig
-
-
-class EmailContent(BaseModel):
-    """
-    Data model for an email message.
-
-    Parameters
-    ----------
-    subject : str
-        Subject of the email.
-    body : str
-        Plain text body of the email.
-    html_body : str | None
-        HTML body of the email.
-    from_address : str
-        Sender email address.
-    to_addresses : Sequence[str]
-        List of recipient email addresses.
-    cc : Sequence[str] | None
-        List of CC recipient addresses.
-    bcc : Sequence[str] | None
-        List of BCC recipient addresses.
-    reply_to : Sequence[str] | None
-        List of Reply-To addresses.
-    attachments : Sequence[Path] | None
-        List of file paths to attach.
-    """
-
-    subject: str = Field(..., description="Subject of the email")
-    body: str = Field(..., description="Plain text body of the email")
-    html_body: str | None = Field(default=None, description="HTML body of the email")
-    from_address: str = Field(..., description="Sender email address")
-    to_addresses: Sequence[str] = Field(
-        ..., description="List of recipient email addresses"
-    )
-    cc: Sequence[str] | None = Field(
-        default=None, description="List of CC recipient addresses"
-    )
-    bcc: Sequence[str] | None = Field(
-        default=None, description="List of BCC recipient addresses"
-    )
-    reply_to: Sequence[str] | None = Field(
-        default=None, description="List of Reply-To addresses"
-    )
-    attachments: Sequence[Path] | None = Field(
-        default=None, description="List of file paths to attach"
-    )
+from telegraph.config import ProjectSettings
+from telegraph.models import Email
 
 
 class SMTPClient:
@@ -75,22 +16,25 @@ class SMTPClient:
     -------
     connect()
         Establishes connection and logs in.
-    send_email(email: EmailContent)
+    send_email(email: Email)
         Sends an email using the established connection.
     disconnect()
         Closes the SMTP connection.
     """
 
-    def __init__(self, config: SMTPConfig) -> None:
+    def __init__(self, config: ProjectSettings, password: str) -> None:
         """
         Initialize the SMTP client with given configuration.
 
         Parameters
         ----------
-        config : SMTPConfig
-            The SMTP server configuration.
+        config : ProjectSettings
+            The project settings with SMTP server configuration.
+        password : str
+            Password to login to server for username specified in config file.
         """
         self.config = config
+        self._password = password
         self._server: smtplib.SMTP | None = None
 
     def __enter__(self) -> "SMTPClient":
@@ -102,7 +46,7 @@ class SMTPClient:
         SMTPClient
             The connected SMTP client instance.
         """
-        self.connect()
+        self.connect(password=self._password)
         return self
 
     def __exit__(
@@ -111,15 +55,14 @@ class SMTPClient:
         exc_val: BaseException | None,
         exc_tb: Any | None,
     ) -> None:
-        """
-        Exit the runtime context and close the SMTP connection.
-        """
+        """Exit the runtime context and close the SMTP connection."""
         self.disconnect()
 
-    def connect(self) -> None:
-        """
-        Establish a connection to the SMTP server and login if credentials are provided.
-        Uses a secure SSL context for TLS if enabled.
+    def connect(self, password: str) -> None:
+        """Connect to SMTP server.
+
+        Establish a connection to the SMTP server and login provided. Uses a
+        secure SSL context for TLS if enabled.
 
         Raises
         ------
@@ -132,16 +75,16 @@ class SMTPClient:
             context = ssl.create_default_context()
             server.starttls(context=context)
             server.ehlo()
-        server.login(self.config.username, self.config.password)
+        server.login(self.config.username, password)
         self._server = server
 
-    def send_email(self, email: EmailContent) -> None:
+    def send_email(self, email: Email) -> None:
         """
         Send an email message using the SMTP connection.
 
         Parameters
         ----------
-        email : EmailContent
+        email : Email
             The email content and recipients.
 
         Raises
@@ -180,7 +123,10 @@ class SMTPClient:
                 with open(path, "rb") as f:
                     data = f.read()
                 msg.add_attachment(
-                    data, maintype=maintype, subtype=subtype, filename=path.name
+                    data,
+                    maintype=maintype,
+                    subtype=subtype,
+                    filename=path.name,
                 )
 
         recipients: list[str] = (

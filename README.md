@@ -48,7 +48,7 @@ ctx = TemplateContext.model_validate({"msg": "Hello!"}),
 tpl = EmailTemplate(
     subject_template="subject.txt.j2",
     text_template="body.txt.j2",
-    html_template="body.htmt.j2",
+    html_template="body.html.j2",
     context=ctx,
 )
 

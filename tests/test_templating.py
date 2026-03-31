@@ -5,7 +5,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from telegraph.models.templating import (
+from telegraph.templating import (
     EmailTemplate,
     TemplateContext,
     TemplateRenderer,

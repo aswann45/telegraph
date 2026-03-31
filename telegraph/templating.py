@@ -1,33 +1,25 @@
 """
-Template handling models for Telegraph.
+Template handling for Telegraph.
 
 Defines:
-- `TemplateContext`: a dynamic Pydantic model for Jinja context data.
-- `EmailTemplate`: ties together subject/text/HTML template filenames with context.
+- `EmailTemplate`: ties together subject/text/HTML template filenames with
+context.
 - `TemplateRenderer`: wraps Jinja2 environment setup.
 - `render()` methods to produce `EmailContent` from templates.
 """
 
 from __future__ import annotations
 
+import datetime
 from collections.abc import Sequence
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, EmailStr, Field
 
-from telegraph.models.emails import EmailContent
+from telegraph.models.email import Email
+from telegraph.models.template_context import Context
 from telegraph.util.template_handling import html_to_plain
-
-
-class TemplateContext(BaseModel):
-    """
-    Generic context data for Jinja templates.
-
-    Allows arbitrary extra fields for template rendering.
-    """
-
-    model_config = ConfigDict(extra="allow")
 
 
 class EmailTemplate(BaseModel):
@@ -46,31 +38,32 @@ class EmailTemplate(BaseModel):
         Context data for rendering all templates.
     """
 
-    subject_template: str = Field(
+    subject_template: Path = Field(
         ..., description="Jinja template file for the email subject"
     )
-    text_template: str | None = Field(
+    text_template: Path | None = Field(
         default=None, description="Jinja template file for the plain-text body"
     )
-    html_template: str | None = Field(
+    html_template: Path | None = Field(
         default=None, description="Jinja template file for the HTML body"
     )
-    context: TemplateContext = Field(
+    context: Context = Field(
         ..., description="Context data for rendering templates"
     )
 
     def render(
         self,
         renderer: TemplateRenderer,
-        from_address: str,
-        to_addresses: list[str],
-        cc: Sequence[str] | None = None,
-        bcc: Sequence[str] | None = None,
-        reply_to: Sequence[str] | None = None,
+        from_address: EmailStr,
+        to_addresses: Sequence[EmailStr],
+        cc: Sequence[EmailStr] | None = None,
+        bcc: Sequence[EmailStr] | None = None,
+        reply_to: Sequence[EmailStr] | None = None,
         attachments: Sequence[Path] | None = None,
-    ) -> EmailContent:
+        to_file: bool = False,
+    ) -> Email:
         """
-        Render subject, body, and optional HTML body into an EmailContent.
+        Render subject, body, and optional HTML body into an Email.
 
         Parameters
         ----------
@@ -88,21 +81,38 @@ class EmailTemplate(BaseModel):
             Reply-To addresses.
         attachments : list[Path] | None
             File paths to attach.
+        to_file : bool
+            Write rendered template to file. Default False.
         """
-        subject = renderer.render_template(self.subject_template, self.context)
+        subject = renderer.render_template(
+            self.subject_template.name, self.context
+        )
         body: str
         html_body: str | None = None
 
         if self.text_template is None and self.html_template is None:
-            raise ValueError("Need at least one of text_template or html_template")
+            raise ValueError(
+                "Need at least one of text_template or html_template"
+            )
 
-        if self.html_template:
-            html_body = renderer.render_template(self.html_template, self.context)
+        if self.html_template and self.html_template.exists():
+            html_body = renderer.render_template(
+                self.html_template.name,
+                self.context,
+                to_file,
+                extension=".html",
+            )
+        if self.text_template and self.text_template.exists():
+            body = renderer.render_template(
+                self.text_template.name,
+                self.context,
+                to_file,
+                extension=".txt",
+            )
+        elif html_body:
             body = html_to_plain(html_body)
-        if self.text_template:
-            body = renderer.render_template(self.text_template, self.context)
 
-        return EmailContent(
+        return Email(
             subject=subject,
             body=body,
             html_body=html_body,
@@ -126,12 +136,19 @@ class TemplateRenderer:
     """
 
     def __init__(self, template_dir: Path) -> None:
+        self.template_dir = template_dir
         self.env = Environment(
             loader=FileSystemLoader(str(template_dir)),
             autoescape=select_autoescape(["html", "xml"]),
         )
 
-    def render_template(self, template_name: str, context: TemplateContext) -> str:
+    def render_template(
+        self,
+        template_name: str,
+        context: Context,
+        to_file: bool = False,
+        extension: str | None = None,
+    ) -> str:
         """
         Render a single Jinja template with the provided context.
 
@@ -141,6 +158,8 @@ class TemplateRenderer:
             Filename of the template to render.
         context : TemplateContext
             Data context for rendering.
+        to_file : bool
+            Write rendered template to file. Default False.
 
         Returns
         -------
@@ -148,4 +167,20 @@ class TemplateRenderer:
             The rendered template string.
         """
         template = self.env.get_template(template_name)
-        return template.render(**context.model_dump())
+        rendered_template = template.render(**context.model_dump())
+        if to_file is True:
+            if extension is None:
+                raise ValueError(
+                    "Must specify file extension when rendering to file."
+                )
+            build_dir: Path = self.template_dir.parent / "build"
+            build_dir.mkdir(exist_ok=True)
+            file_name = (
+                context.subject
+                + "_"
+                + str(datetime.datetime.now(tz=datetime.UTC))
+                + extension
+            )
+            with open(build_dir / file_name, "w") as outfile:
+                outfile.write(rendered_template)
+        return rendered_template

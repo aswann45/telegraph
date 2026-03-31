@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from telegraph.config import Settings
-from telegraph.models.emails import (
+from telegraph.models.email import (
     EmailContent,
     EmailMessage,
     SMTPClient,
@@ -98,7 +98,9 @@ class DummySMTPWithAttachmentCapture:
     def login(self, username, password):
         self.logged_in = True
 
-    def send_message(self, msg: EmailMessage, from_addr: str, to_addrs: list[str]):
+    def send_message(
+        self, msg: EmailMessage, from_addr: str, to_addrs: list[str]
+    ):
         self.sent_messages.append((msg, from_addr, to_addrs))
 
     def quit(self):
@@ -155,7 +157,8 @@ def test_attachment_handling(monkeypatch, tmp_path: Path):
             attachment_found = True
             assert part.get_content_type() == "text/plain"
             assert (
-                part.get_payload(decode=True) == b"Quarterly revenue report goes here."
+                part.get_payload(decode=True)
+                == b"Quarterly revenue report goes here."
             )
 
     assert attachment_found, "Expected attachment was not found"

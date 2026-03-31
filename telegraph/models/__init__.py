@@ -7,13 +7,7 @@ Defines:
 - Factory methods to render models into EmailContent instances.
 """
 
-from .emails import EmailContent, SMTPClient
-from .templating import EmailTemplate, TemplateContext, TemplateRenderer
+from .email import Email
+from .template_context import Context
 
-__all__ = [
-    "EmailContent",
-    "EmailTemplate",
-    "SMTPClient",
-    "TemplateContext",
-    "TemplateRenderer",
-]
+__all__ = ["Email", "Context"]
