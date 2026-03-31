@@ -16,7 +16,7 @@ re_html_tag = re.compile(r"<[a-z]/?>")
 
 
 @given(st.text())
-def test_html_to_plain_returns_str_and_no_tags(s: str):
+def test_html_to_plain_returns_str_and_no_tags(s: str) -> None:
     """html_to_plain should never emit raw HTML tags."""
     out = html_to_plain(s)
     assert isinstance(out, str)
@@ -24,7 +24,7 @@ def test_html_to_plain_returns_str_and_no_tags(s: str):
     assert re.search(re_html_tag, out) is None
 
 
-def test_template_renderer_and_email_template(tmp_path: Path):
+def test_template_renderer_and_email_template(tmp_path: Path) -> None:
     # create a small template directory
     tpl_dir = tmp_path / "templates"
     tpl_dir.mkdir()
@@ -32,7 +32,9 @@ def test_template_renderer_and_email_template(tmp_path: Path):
     (tpl_dir / "body.txt.j2").write_text("Plain: {{ msg }}")
     (tpl_dir / "body.html.j2").write_text("<p>{{ msg }}</p>")
 
-    ctx = TemplateContext.model_validate(dict(name="Alice", msg="Hi there"))
+    ctx = TemplateContext.model_validate(
+        dict(name="Alice", msg="Hi there", to_addresses=["to1@example.com"])
+    )
     renderer = TemplateRenderer(tpl_dir)
 
     # full text + html flow
@@ -64,13 +66,13 @@ def test_template_renderer_and_email_template(tmp_path: Path):
     assert email.attachments == []
 
 
-def test_email_template_fallback_html_to_plain(tmp_path: Path):
+def test_email_template_fallback_html_to_plain(tmp_path: Path) -> None:
     tpl_dir = tmp_path / "templates"
     tpl_dir.mkdir()
     (tpl_dir / "subject.j2").write_text("Subject")
     (tpl_dir / "html.j2").write_text("<h1>Welcome!</h1>")
 
-    ctx = TemplateContext()
+    ctx = TemplateContext(to_addresses=["x@y.com"])
     renderer = TemplateRenderer(tpl_dir)
 
     tpl = EmailTemplate(
@@ -91,12 +93,12 @@ def test_email_template_fallback_html_to_plain(tmp_path: Path):
     assert "Welcome!" in email.body
 
 
-def test_email_template_raises_value_error(tmp_path: Path):
+def test_email_template_raises_value_error(tmp_path: Path) -> None:
     tpl_dir = tmp_path / "templates"
     tpl_dir.mkdir()
     (tpl_dir / "subject.j2").write_text("Subject")
 
-    ctx = TemplateContext()
+    ctx = TemplateContext(to_addresses=["x@y.com"])
     renderer = TemplateRenderer(tpl_dir)
 
     tpl = EmailTemplate(

@@ -14,15 +14,11 @@ import typer
 import yaml
 from rich.progress import track
 
-from telegraph import (
-    AppSettings,
-    Context,
-    EmailTemplate,
-    ProjectSettings,
-    SMTPClient,
-    TemplateRenderer,
-    read_data_file,
-)
+from telegraph.config import AppSettings, ProjectSettings
+from telegraph.models import Context
+from telegraph.smtp_client import SMTPClient
+from telegraph.templating import EmailTemplate, TemplateRenderer
+from telegraph.util import read_data_file
 
 cli = typer.Typer(no_args_is_help=True)
 
@@ -41,7 +37,7 @@ def handle_project_config(project_name: str | None = None) -> ProjectSettings:
             / project_name
             / "telegraph-project-config.yaml"
         )
-    if conf_file_path.exists is False:
+    if conf_file_path.exists() is False:
         raise FileNotFoundError(
             "Could not find a config file for this project. "
             "Are you in the right directory or specify an existing project "

@@ -2,53 +2,48 @@ from pathlib import Path
 
 import yaml
 
-from telegraph.config import Settings
+from telegraph.config import AppSettings, ProjectSettings
 
 
-def test_smtp_config_yaml_and_env(monkeypatch, tmp_path: Path):
-    # write a YAML config file
-    smtp_config = {
-        "host": "smtp.yaml",
-        "port": 1025,
-        "username": "yaml_user",
-        "password": "yaml_pass",
-        "use_tls": False,
-        "from_address": "yaml@test.com",
-    }
-    cfg = {"smtp_config": smtp_config}
-    yaml_file = tmp_path / "test_config.yaml"
-    yaml_file.write_text(yaml.dump(cfg))
-
-    # point to it, and override one field via env var
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("TELEGRAPH_SMTP_CONFIG_USERNAME", "env_user")
-
-    config = Settings()
-    # YAML fills in host/port/password/use_tls
-    assert config.smtp_config.host == "smtp.yaml"
-    assert config.smtp_config.port == 1025
-    assert config.smtp_config.password == "yaml_pass"
-    assert config.smtp_config.use_tls is False
-    assert config.smtp_config.from_address == "yaml@test.com"
-    # environment should override username
-    assert config.smtp_config.username == "env_user"
-
-    # ctor kwargs always override
-    override = Settings.model_validate(
-        {
-            "smtp_config": dict(
-                host="ctor_host",
-                port=999,
-                username="ctor_user",
-                password="ctor_pass",
-                use_tls=True,
-                from_address="ctor_from@test.net",
-            )
-        }
+def test_app_settings_yaml_and_env(monkeypatch, tmp_path: Path):
+    config_file = tmp_path / "test_config.yaml"
+    config_file.write_text(
+        yaml.dump(
+            {
+                "host": "smtp.yaml",
+                "port": 1025,
+                "use_tls": False,
+            }
+        )
     )
-    assert override.smtp_config.host == "ctor_host"
-    assert override.smtp_config.port == 999
-    assert override.smtp_config.username == "ctor_user"
-    assert override.smtp_config.password == "ctor_pass"
-    assert override.smtp_config.use_tls is True
-    assert override.smtp_config.from_address == "ctor_from@test.net"
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("TELEGRAPH_HOST", "smtp.env")
+
+    config = AppSettings()
+
+    assert config.host == "smtp.env"
+    assert config.port == 1025
+    assert config.use_tls is False
+
+
+def test_project_settings_constructor_and_default_paths():
+    config = ProjectSettings(
+        project_name="demo_project",
+        username="demo_user",
+        host="smtp.example.com",
+        from_address="sender@example.com",
+    )
+
+    assert config.project_name == "demo_project"
+    assert config.username == "demo_user"
+    assert config.host == "smtp.example.com"
+    assert config.port == 587
+    assert config.use_tls is True
+    assert (
+        Path(config.project_config_file).name
+        == "telegraph-project-config.yaml"
+    )
+    assert Path(config.template_path).name == "templates"
+    assert "demo_project" in config.project_config_file
+    assert "demo_project" in config.template_path

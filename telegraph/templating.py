@@ -51,6 +51,16 @@ class EmailTemplate(BaseModel):
         ..., description="Context data for rendering templates"
     )
 
+    @staticmethod
+    def _template_exists(
+        template_path: Path | None, renderer: TemplateRenderer
+    ) -> bool:
+        if template_path is None:
+            return False
+        if template_path.is_absolute():
+            return template_path.exists()
+        return (renderer.template_dir / template_path).exists()
+
     def render(
         self,
         renderer: TemplateRenderer,
@@ -95,14 +105,14 @@ class EmailTemplate(BaseModel):
                 "Need at least one of text_template or html_template"
             )
 
-        if self.html_template and self.html_template.exists():
+        if self._template_exists(self.html_template, renderer):
             html_body = renderer.render_template(
                 self.html_template.name,
                 self.context,
                 to_file,
                 extension=".html",
             )
-        if self.text_template and self.text_template.exists():
+        if self._template_exists(self.text_template, renderer):
             body = renderer.render_template(
                 self.text_template.name,
                 self.context,
@@ -184,3 +194,8 @@ class TemplateRenderer:
             with open(build_dir / file_name, "w") as outfile:
                 outfile.write(rendered_template)
         return rendered_template
+
+
+TemplateContext = Context
+
+__all__ = ["EmailTemplate", "TemplateContext", "TemplateRenderer"]

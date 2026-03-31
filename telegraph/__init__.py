@@ -12,6 +12,8 @@ from .config import AppSettings, ProjectSettings
 from .models import (
     Context,
     Email,
+    EmailContent,
+    TemplateContext,
 )
 from .smtp_client import SMTPClient
 from .templating import EmailTemplate, TemplateRenderer
@@ -23,11 +25,13 @@ from .util import (
 
 __all__ = [
     "Email",
+    "EmailContent",
     "EmailTemplate",
     "AppSettings",
     "ProjectSettings",
     "SMTPClient",
     "Context",
+    "TemplateContext",
     "TemplateRenderer",
     "initial_setup",
     "new_project_setup",

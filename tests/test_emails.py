@@ -1,14 +1,11 @@
 import smtplib
+from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
 
-from telegraph.config import Settings
-from telegraph.models.email import (
-    EmailContent,
-    EmailMessage,
-    SMTPClient,
-    # SMTPConfig,
-)
+from telegraph.config import ProjectSettings
+from telegraph.models.email import EmailContent
+from telegraph.smtp_client import SMTPClient
 
 
 class DummySMTP:
@@ -21,48 +18,46 @@ class DummySMTP:
         self.messages: list[Any] = []
         self.quitted = False
 
-    def ehlo(self):
+    def ehlo(self) -> None:
         self.ehlo_called = True
 
-    def starttls(self, context=None):
+    def starttls(self, context: Any | None = None) -> None:
         self.tls_started = True
 
-    def login(self, username, password):
+    def login(self, username: Any, password: Any) -> None:
         self.logged_in = True
 
-    def send_message(self, msg, from_addr, to_addrs):
+    def send_message(self, msg: Any, from_addr: Any, to_addrs: Any) -> None:
         self.messages.append((msg, from_addr, to_addrs))
 
-    def quit(self):
+    def quit(self) -> None:
         self.quitted = True
 
 
-def test_smtp_client_connect_send_and_disconnect(monkeypatch):
-    # replace smtplib.SMTP with our dummy
+def test_smtp_client_connect_send_and_disconnect(monkeypatch: Any) -> None:
     monkeypatch.setattr(smtplib, "SMTP", DummySMTP)
 
-    smtp_cfg = dict(
+    config = ProjectSettings(
+        project_name="demo_project",
+        username="user",
         host="smtp.example.com",
         port=587,
-        username="user",
-        password="pass",
         use_tls=True,
         from_address="test@test.com",
     )
-    cfg = Settings(smtp_config=smtp_cfg)
-    with SMTPClient(cfg.smtp_config) as client:
+
+    with SMTPClient(config, password="pass") as client:
         server = client._server
         assert isinstance(server, DummySMTP)
         assert server.ehlo_called
         assert server.tls_started
         assert server.logged_in
 
-        # build a minimal EmailContent
         content = EmailContent(
             subject="Test",
             body="Test body",
             html_body=None,
-            from_address=cfg.smtp_config.from_address,
+            from_address=config.from_address,
             to_addresses=["to1@e.com"],
             cc=[],
             bcc=[],
@@ -71,11 +66,10 @@ def test_smtp_client_connect_send_and_disconnect(monkeypatch):
         )
         client.send_email(content)
         assert len(server.messages) == 1
-        _, faddr, taddrs = server.messages[0]
-        assert faddr == "test@test.com"
-        assert "to1@e.com" in taddrs
+        _, from_addr, to_addrs = server.messages[0]
+        assert from_addr == "test@test.com"
+        assert "to1@e.com" in to_addrs
 
-        # client.disconnect()
     assert server.quitted
     assert client._server is None
 
@@ -89,41 +83,39 @@ class DummySMTPWithAttachmentCapture:
         self.tls_started = False
         self.quit_called = False
 
-    def ehlo(self):
+    def ehlo(self) -> None:
         pass
 
-    def starttls(self, context=None):
+    def starttls(self, context: Any | None = None) -> None:
         self.tls_started = True
 
-    def login(self, username, password):
+    def login(self, username: Any, password: Any) -> None:
         self.logged_in = True
 
     def send_message(
         self, msg: EmailMessage, from_addr: str, to_addrs: list[str]
-    ):
+    ) -> None:
         self.sent_messages.append((msg, from_addr, to_addrs))
 
-    def quit(self):
+    def quit(self) -> None:
         self.quit_called = True
 
 
-def test_attachment_handling(monkeypatch, tmp_path: Path):
-    # Prepare dummy file
+def test_attachment_handling(monkeypatch: Any, tmp_path: Path) -> None:
     file_path = tmp_path / "report.txt"
     file_path.write_text("Quarterly revenue report goes here.")
 
-    # Monkeypatch the SMTP class
     dummy_instance = DummySMTPWithAttachmentCapture("ignored", 0)
     monkeypatch.setattr(smtplib, "SMTP", lambda host, port: dummy_instance)
 
-    smtp_config = dict(
+    config = ProjectSettings(
+        project_name="demo_project",
+        username="test_user",
         host="smtp.test.com",
         port=587,
-        username="test_user",
-        password="test_pass",
         use_tls=True,
+        from_address="sender@example.com",
     )
-    config = Settings.model_validate({"smtp_config": smtp_config})
 
     email = EmailContent(
         subject="Financial Report",
@@ -137,8 +129,8 @@ def test_attachment_handling(monkeypatch, tmp_path: Path):
         attachments=[file_path],
     )
 
-    client = SMTPClient(config.smtp_config)
-    client.connect()
+    client = SMTPClient(config, password="test_pass")
+    client.connect(password="test_pass")
     assert isinstance(client._server, DummySMTPWithAttachmentCapture)
 
     client.send_email(email)
@@ -150,7 +142,6 @@ def test_attachment_handling(monkeypatch, tmp_path: Path):
     assert from_addr == "sender@example.com"
     assert "recipient@example.com" in to_addrs
 
-    # Verify attachment presence in MIME structure
     attachment_found = False
     for part in message.iter_attachments():
         if part.get_filename() == "report.txt":

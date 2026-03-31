@@ -19,3 +19,6 @@ class Context(BaseModel):
     attachments: Sequence[Path] | None = None
 
     model_config = ConfigDict(extra="allow")
+
+
+TemplateContext = Context

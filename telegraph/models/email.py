@@ -64,3 +64,6 @@ class Email(BaseModel):
     attachments: Sequence[Path] | None = Field(
         default=None, description="List of file paths to attach"
     )
+
+
+EmailContent = Email
