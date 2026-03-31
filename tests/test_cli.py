@@ -1,12 +1,41 @@
+import importlib
+import json
 from pathlib import Path
 
+import yaml
 from typer.testing import CliRunner
 
 import telegraph.cli as cli_module
+import telegraph.config.project_settings as project_settings_module
+import telegraph.service as service_module
 from telegraph.cli import cli
-from telegraph.config import ProjectSettings
+from telegraph.config import AppSettings, ProjectSettings
 
 runner = CliRunner()
+app_setup_module = importlib.import_module("telegraph.util.app_setup")
+
+
+def configure_test_app(monkeypatch, tmp_path: Path) -> AppSettings:
+    home_dir = tmp_path / "home"
+    app_dir = tmp_path / "workspace"
+    app_dir.mkdir()
+
+    app_config = AppSettings(
+        app_dir=str(app_dir),
+        working_dir=str(home_dir),
+        projects_dir=str(home_dir / "telegraph_projects"),
+        config_dir=str(home_dir / ".telegraph"),
+        app_config_file=str(home_dir / ".telegraph" / "telegraph-config.yaml"),
+        host="smtp.example.com",
+        port=587,
+        use_tls=True,
+    )
+
+    monkeypatch.setattr(app_setup_module, "AppSettings", lambda: app_config)
+    monkeypatch.setattr(service_module, "APP_CONFIG", app_config)
+    monkeypatch.setattr(project_settings_module, "app_settings", app_config)
+
+    return app_config
 
 
 def test_init_does_not_require_project_config(monkeypatch):
@@ -100,3 +129,60 @@ def test_load_context_data_requires_project_config(
 
     assert result.exit_code == 0
     assert observed == [(config, True, data_file)]
+
+
+def test_new_project_end_to_end(monkeypatch, tmp_path: Path):
+    cli_module.config = None
+    app_config = configure_test_app(monkeypatch, tmp_path)
+
+    init_result = runner.invoke(cli, ["init"])
+    assert init_result.exit_code == 0
+
+    result = runner.invoke(cli, ["new-project", "demo"])
+
+    assert result.exit_code == 0
+
+    project_dir = Path(app_config.projects_dir) / "demo"
+    assert (project_dir / "telegraph-project-config.yaml").exists()
+    assert (project_dir / "templates" / "subject.txt.j2").exists()
+    assert (project_dir / "templates" / "body.txt.j2").exists()
+    assert (project_dir / "templates" / "body.html.j2").exists()
+    assert (project_dir / "build").exists()
+
+
+def test_load_context_data_end_to_end(monkeypatch, tmp_path: Path):
+    cli_module.config = None
+    app_config = configure_test_app(monkeypatch, tmp_path)
+
+    project_dir = Path(app_config.projects_dir) / "demo"
+    (project_dir / "build").mkdir(parents=True)
+    (project_dir / "templates").mkdir()
+
+    project_config = ProjectSettings(
+        project_name="demo",
+        username="demo_user",
+        host="smtp.example.com",
+        from_address="sender@example.com",
+    )
+    (project_dir / "telegraph-project-config.yaml").write_text(
+        yaml.dump(project_config.model_dump())
+    )
+    (project_dir / "data.csv").write_text(
+        "to_addresses,subject,name\nalice@example.com,Hello,Alice\n"
+    )
+
+    result = runner.invoke(cli, ["--project", "demo", "load-context-data"])
+
+    assert result.exit_code == 0
+
+    context_path = project_dir / "build" / "context.json"
+    assert context_path.exists()
+
+    loaded = json.loads(context_path.read_text())
+    assert loaded == [
+        {
+            "name": "Alice",
+            "subject": "Hello",
+            "to_addresses": ["alice@example.com"],
+        }
+    ]

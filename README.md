@@ -1,7 +1,7 @@
 Telegraph
 ================
 
-Telegraph is a small Python package for generating and sending emails using templates. I created it so that I could handle more complicated mail merge projects than Outlook or Gmail can usually handle, particularly cc/bcc/reply-to settings and attachments. 
+Telegraph is a small Python package for generating and sending templated emails. It is designed for mail-merge style workflows that need structured context data, Jinja templates, and SMTP features like cc, bcc, reply-to, and attachments.
 
 ## Features
 - Supports multiple file formats for data input (CSV, JSON, XLSX, YAML)
@@ -11,39 +11,46 @@ Telegraph is a small Python package for generating and sending emails using temp
 rendering
 
 ## Installation
-To install Telegraph from PyPi, run the following commands:
+To install Telegraph from PyPI:
 
 ```bash
 pip install telegraph-emails
 telegraph init
 ```
-Or from source using Poetry:
+
+From source in this repo, use the local virtualenv or install the package into one:
+
 ```bash
-git clone https://github.com/aswann45/telegraph.git
-cd telegraph
-scripts/install
-telegraph init
+.venv/bin/python -m telegraph --help
 ```
 
-This will create a couple of directories in your $HOME folder, including `.telegraph` and `telegraph_projects`. It will also create a `yaml` default configuratioan file in the project's root directory, where ever you installed it. To set your own configuration, copy that file (named `telegraph-default-config.yaml`) to `$HOME/.telegraph/telegraph-config.yaml` and edit away.
+Running `telegraph init` creates:
 
-The `telegraph_projects` directory is where you'll work with your emailing projects and is explained in more detail below. 
+- `$HOME/.telegraph/telegraph-config.yaml`
+- `$HOME/telegraph_projects/`
+
+The global config file is intentionally created with placeholder values, so you will need to edit it before sending real email.
 
 ## Usage
 
 ### Models
-`telegraph` is built around several `pydantic` models that handle all data transformations, and are available as imports from the root package. The key models are:
+The main public models are available from the package root.
 
+`Context`, `EmailTemplate`, and `TemplateRenderer` handle template rendering:
 
-
-**EmailTemplate**, **TemplateContext** and **TemplateRenderer**:
 ```python
 from pathlib import Path
-from telegraph import EmailTemplate, TemplateContext, TemplateRenderer
+from telegraph import Context, EmailTemplate, TemplateRenderer
 
 renderer = TemplateRenderer(Path("path/to/templates"))
 
-ctx = TemplateContext.model_validate({"msg": "Hello!"}),
+ctx = Context.model_validate(
+    {
+        "subject": "Hello",
+        "to_addresses": ["you@example.com"],
+        "msg": "Hello!",
+    }
+)
 
 tpl = EmailTemplate(
     subject_template="subject.txt.j2",
@@ -52,51 +59,78 @@ tpl = EmailTemplate(
     context=ctx,
 )
 
-email_content = tpl.render(
+email = tpl.render(
     renderer=renderer,
     from_address="me@example.com",
-    to_addresses=["you@example.com"],
+    to_addresses=ctx.to_addresses,
 )
 ```
 
-and **SMTPClient**:
+`SMTPClient` sends the rendered `Email`:
+
 ```python
-from telegraph import Settings, SMTPClient
+from telegraph import ProjectSettings, SMTPClient
 
-config = Settings()
+config = ProjectSettings(
+    project_name="demo_project",
+    username="smtp-user",
+    host="smtp.example.com",
+    from_address="me@example.com",
+)
 
-with SMTPClient(config.smtp_config) as client:
-    client.send_email(email_content)
+with SMTPClient(config, password="secret") as client:
+    client.send_email(email)
 
 ```
 
-Note that after calling `render()` on the EmailTemplate model, it returns the `EmailContent` model that `SMTPClient` expects for `send()`.
-
+For compatibility with older code, `TemplateContext` and `EmailContent` are still available as aliases for `Context` and `Email`.
 
 ### Setting up a new project
-In addition to using the base models included in the package, you can also use `telegraph` to create email project pipelines to handle most mail merge requirements. To set up a new project, use the following command:
+To scaffold a project workspace:
 
 ```bash
 telegraph new-project <project_name>
 ```
-Replace <project_name> with the desired name for your project.
 
-This will create a new directiory at `$HOME/telegraph_projects/<project_name>` with some subfolders, some Jinja templates, and a python file `pipeline.py`. For each new emailing project, you'll add your data to the `data` directory. It's not terribly important how you format the data, but the closer it resembles the context you'll need for your Jinja templates and the `telegraph` email models, the better. 
+This creates a directory at `$HOME/telegraph_projects/<project_name>` with:
+
+- `telegraph-project-config.yaml`
+- `templates/subject.txt.j2`
+- `templates/body.txt.j2`
+- `templates/body.html.j2`
+- `build/`
+
+Put your source data in that project directory. The current workflow expects `data.csv` by default, or you can pass `--file-name` to `load-context-data` or `send`.
 
 ### Rendering templates
-Telegraph uses Jinja2 templating engine to render templates. You can create your own templates using Jinja2 syntax. 
+Telegraph uses Jinja2 templates for the subject and body.
 
-Each new project will create three base Jinja files in the `templates` directory: `subject.txt.j2`, `body.txt.j2`, and `body.html.j2`. The program expects you to have at least the subject template and one of the body templates. If you supply only an HTML template, `telegraph` will create a plaintext version when it sends any emails so recipient clients that prefer plaintext will have the option. If supply both an HTML and a plaintext template, `telegraph` will use the templates you provide and not do any conversion.
+Each project starts with three template files in `templates/`. You need a subject template and at least one body template. If only an HTML body exists, Telegraph will derive a plain-text version automatically when rendering.
 
-### Sending emails
-At the moment, `telegraph`'s project workflow relies on sending emails using the `pipeline.py` file that is created with each new project. Eventually, the plan is to have control over each project's pipeline file from the `telegraph` CLI. But for now, to send emails you'll need to customize the `pipeline.py` file for your data and email templates, and then run the file from the command line:
+### CLI workflow
+The current CLI flow is:
+
 ```bash
-python pipeline.py <command>
+.venv/bin/telegraph init
+.venv/bin/telegraph new-project my_project
+.venv/bin/telegraph --project my_project load-context-data
+.venv/bin/telegraph --project my_project send --password '...'
 ```
-`telegraph` uses the `typer` package to handle CLI arguments, even in the `pipeline.py` files, which should produce useful documentation on how each command works. 
+
+Useful notes:
+
+- `load-context-data` reads project data and writes `build/context.json`
+- `send` renders messages and either writes output files or sends through SMTP
+- `send --limit N` processes the first `N` rows
+- `python -m telegraph --help` shows the current commands
 
 ### Configuration
-Telegraph uses Pydantic settings for configuration. As mentioned above, you can manage settings by copying the `telegraph-default-config.yaml` file created in the project's root directory (wherever you installed it) to `$HOME/.telegraph/telegraph-config.yaml`. **You will need to do this because the default configuration is all placeholder data and will not let you send any emails.**
+Telegraph uses two related configuration models:
+
+- `AppSettings` for global defaults such as the projects directory and default SMTP host/port
+- `ProjectSettings` for per-project settings such as username, sender address, template path, and optional defaults for cc/bcc/reply-to/attachments
+
+The generated YAML files are placeholders by default, so you will need to replace values like `host`, `username`, and `from_address` before sending real mail.
 
 ## Contributing
 Contributions to Telegraph are welcome. Please submit a pull request with your changes.

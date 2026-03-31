@@ -23,6 +23,8 @@ from .util import (
     read_data_file,
 )
 
+initial_setup = app_setup
+
 __all__ = [
     "Email",
     "EmailContent",
@@ -34,7 +36,7 @@ __all__ = [
     "TemplateContext",
     "TemplateRenderer",
     "initial_setup",
+    "app_setup",
     "new_project_setup",
     "read_data_file",
-    "app_setup",
 ]
