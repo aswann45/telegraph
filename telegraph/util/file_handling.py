@@ -106,8 +106,6 @@ def read_excel_file(
 
 
 def read_data_file(path: Path, **kwargs: Any) -> list[dict[str, Any]]:
-    print("data file path:", path)
-    print("data file path suffix:", path.suffix)
     if path.suffix == ".csv":
         return read_csv_file(path)
     elif path.suffix == ".json":

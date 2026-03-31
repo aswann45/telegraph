@@ -60,6 +60,9 @@ def send_emails(
     limit: int | None = None,
     to_file: bool = False,
 ) -> None:
+    if limit is not None and limit < 1:
+        raise ValueError("limit must be at least 1")
+
     data = load_context_data(
         config=config, write_to_file=False, data_file=data_file
     )
@@ -68,8 +71,7 @@ def send_emails(
     renderer = TemplateRenderer(template_path)
 
     if limit is not None:
-        _limit = limit - 1
-        limited_data = [data[_limit]]
+        limited_data = data[:limit]
     else:
         limited_data = data
 

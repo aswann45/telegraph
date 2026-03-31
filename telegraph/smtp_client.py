@@ -101,8 +101,6 @@ class SMTPClient:
         msg["To"] = ", ".join(email.to_addresses)
         if email.cc:
             msg["Cc"] = ", ".join(email.cc)
-        if email.bcc:
-            msg["Bcc"] = ", ".join(email.bcc)
         if email.reply_to:
             msg["Reply-To"] = ", ".join(email.reply_to)
 

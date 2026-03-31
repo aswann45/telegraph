@@ -66,9 +66,10 @@ def test_smtp_client_connect_send_and_disconnect(monkeypatch: Any) -> None:
         )
         client.send_email(content)
         assert len(server.messages) == 1
-        _, from_addr, to_addrs = server.messages[0]
+        message, from_addr, to_addrs = server.messages[0]
         assert from_addr == "test@test.com"
         assert "to1@e.com" in to_addrs
+        assert "Bcc" not in message
 
     assert server.quitted
     assert client._server is None
