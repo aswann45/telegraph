@@ -3,9 +3,35 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
 
-from telegraph.config import ProjectSettings
+from telegraph.config import (
+    AppSettings,
+    ProjectSettings,
+    resolve_project_settings,
+)
 from telegraph.models.email import EmailContent
 from telegraph.smtp_client import SMTPClient
+
+
+def make_runtime_config(tmp_path: Path):
+    app_config = AppSettings(
+        working_dir=str(tmp_path),
+        projects_dir=str(tmp_path / "telegraph_projects"),
+        config_dir=str(tmp_path / ".telegraph"),
+        app_config_file=str(tmp_path / ".telegraph" / "telegraph-config.yaml"),
+        host="smtp.example.com",
+        port=587,
+        use_tls=True,
+    )
+    project_dir = Path(app_config.projects_dir) / "demo_project"
+    project_dir.mkdir(parents=True, exist_ok=True)
+    return resolve_project_settings(
+        app_config=app_config,
+        project_settings=ProjectSettings(
+            project_name="demo_project",
+            username="user",
+            from_address="test@test.com",
+        ),
+    )
 
 
 class DummySMTP:
@@ -34,17 +60,12 @@ class DummySMTP:
         self.quitted = True
 
 
-def test_smtp_client_connect_send_and_disconnect(monkeypatch: Any) -> None:
+def test_smtp_client_connect_send_and_disconnect(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
     monkeypatch.setattr(smtplib, "SMTP", DummySMTP)
 
-    config = ProjectSettings(
-        project_name="demo_project",
-        username="user",
-        host="smtp.example.com",
-        port=587,
-        use_tls=True,
-        from_address="test@test.com",
-    )
+    config = make_runtime_config(tmp_path)
 
     with SMTPClient(config, password="pass") as client:
         server = client._server
@@ -109,13 +130,24 @@ def test_attachment_handling(monkeypatch: Any, tmp_path: Path) -> None:
     dummy_instance = DummySMTPWithAttachmentCapture("ignored", 0)
     monkeypatch.setattr(smtplib, "SMTP", lambda host, port: dummy_instance)
 
-    config = ProjectSettings(
-        project_name="demo_project",
-        username="test_user",
+    app_config = AppSettings(
+        working_dir=str(tmp_path),
+        projects_dir=str(tmp_path / "telegraph_projects"),
+        config_dir=str(tmp_path / ".telegraph"),
+        app_config_file=str(tmp_path / ".telegraph" / "telegraph-config.yaml"),
         host="smtp.test.com",
         port=587,
         use_tls=True,
-        from_address="sender@example.com",
+    )
+    project_dir = Path(app_config.projects_dir) / "demo_project"
+    project_dir.mkdir(parents=True, exist_ok=True)
+    config = resolve_project_settings(
+        app_config=app_config,
+        project_settings=ProjectSettings(
+            project_name="demo_project",
+            username="test_user",
+            from_address="sender@example.com",
+        ),
     )
 
     email = EmailContent(

@@ -2,7 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from telegraph.config import ProjectSettings
+from telegraph.config import (
+    AppSettings,
+    ProjectSettings,
+    ResolvedProjectSettings,
+    resolve_project_settings,
+)
 from telegraph.models import Context, Email
 from telegraph.service import send_emails
 
@@ -10,7 +15,7 @@ from telegraph.service import send_emails
 class DummySMTPClient:
     sent: list[Email]
 
-    def __init__(self, config: ProjectSettings, password: str):
+    def __init__(self, config: ResolvedProjectSettings, password: str):
         self.config = config
         self.password = password
         self.sent = []
@@ -69,13 +74,30 @@ class DummyEmailTemplate:
         )
 
 
-def test_send_emails_limit_sends_first_n(monkeypatch):
-    config = ProjectSettings(
-        project_name="demo_project",
-        username="demo_user",
+def make_runtime_config(tmp_path: Path) -> ResolvedProjectSettings:
+    app_config = AppSettings(
+        working_dir=str(tmp_path),
+        projects_dir=str(tmp_path / "telegraph_projects"),
+        config_dir=str(tmp_path / ".telegraph"),
+        app_config_file=str(tmp_path / ".telegraph" / "telegraph-config.yaml"),
         host="smtp.example.com",
-        from_address="sender@example.com",
+        port=587,
+        use_tls=True,
     )
+    project_dir = Path(app_config.projects_dir) / "demo_project"
+    project_dir.mkdir(parents=True, exist_ok=True)
+    return resolve_project_settings(
+        app_config=app_config,
+        project_settings=ProjectSettings(
+            project_name="demo_project",
+            username="demo_user",
+            from_address="sender@example.com",
+        ),
+    )
+
+
+def test_send_emails_limit_sends_first_n(monkeypatch, tmp_path: Path):
+    config = make_runtime_config(tmp_path)
     contexts = [
         Context(subject="one", to_addresses=["one@example.com"]),
         Context(subject="two", to_addresses=["two@example.com"]),
@@ -105,13 +127,8 @@ def test_send_emails_limit_sends_first_n(monkeypatch):
     ] == ["one", "two"]
 
 
-def test_send_emails_rejects_non_positive_limit():
-    config = ProjectSettings(
-        project_name="demo_project",
-        username="demo_user",
-        host="smtp.example.com",
-        from_address="sender@example.com",
-    )
+def test_send_emails_rejects_non_positive_limit(tmp_path: Path):
+    config = make_runtime_config(tmp_path)
 
     with pytest.raises(ValueError, match="limit must be at least 1"):
         send_emails(config=config, password="secret", limit=0)

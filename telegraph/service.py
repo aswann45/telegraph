@@ -11,10 +11,13 @@ import json
 from pathlib import Path
 
 import typer
-import yaml
 from rich.progress import track
 
-from telegraph.config import AppSettings, ProjectSettings
+from telegraph.config import (
+    AppSettings,
+    ResolvedProjectSettings,
+    resolve_project_settings,
+)
 from telegraph.models import Context
 from telegraph.smtp_client import SMTPClient
 from telegraph.templating import EmailTemplate, TemplateRenderer
@@ -25,36 +28,18 @@ cli = typer.Typer(no_args_is_help=True)
 APP_CONFIG = AppSettings()
 
 
-def handle_project_config(project_name: str | None = None) -> ProjectSettings:
-    """Use global settings for unset project config settings."""
-    globals = APP_CONFIG.model_dump(include={"use_tls", "host", "port"})
-
-    if project_name is None:
-        conf_file_path = Path().cwd() / "telegraph-project-config.yaml"
-    else:
-        conf_file_path = (
-            Path(APP_CONFIG.projects_dir)
-            / project_name
-            / "telegraph-project-config.yaml"
-        )
-    if conf_file_path.exists() is False:
-        raise FileNotFoundError(
-            "Could not find a config file for this project. "
-            "Are you in the right directory or specify an existing project "
-            "name?"
-        )
-
-    project_conf_dict = yaml.safe_load(conf_file_path.read_text())
-
-    project_conf_dict = project_conf_dict | globals
-
-    project_conf = ProjectSettings(**project_conf_dict)
-
-    return project_conf
+def handle_project_config(
+    project_name: str | None = None,
+) -> ResolvedProjectSettings:
+    """Resolve project config into a runtime-ready settings object."""
+    return resolve_project_settings(
+        project_name=project_name,
+        app_config=APP_CONFIG,
+    )
 
 
 def send_emails(
-    config: ProjectSettings,
+    config: ResolvedProjectSettings,
     password: str,
     data_file: Path | None = None,
     limit: int | None = None,
@@ -103,14 +88,12 @@ def send_emails(
 
 
 def load_context_data(
-    config: ProjectSettings,
+    config: ResolvedProjectSettings,
     write_to_file: bool = True,
     data_file: Path | None = None,
 ) -> list[Context]:
-    project_dir = Path(config.project_config_file).parent.resolve()
-
     if data_file is None:
-        file_data = read_data_file(project_dir / "data.csv")
+        file_data = read_data_file(config.data_file)
     else:
         file_data = read_data_file(data_file)
 
@@ -129,7 +112,7 @@ def load_context_data(
         out_data.append(Context.model_validate(d))
 
     if write_to_file:
-        with open((project_dir / "build" / "context.json"), "w") as outfile:
+        with open(config.build_path / "context.json", "w") as outfile:
             json.dump(
                 [g.model_dump(exclude_none=True) for g in out_data],
                 outfile,

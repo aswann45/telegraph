@@ -9,7 +9,12 @@ import telegraph.cli as cli_module
 import telegraph.config.project_settings as project_settings_module
 import telegraph.service as service_module
 from telegraph.cli import cli
-from telegraph.config import AppSettings, ProjectSettings
+from telegraph.config import (
+    AppSettings,
+    ProjectSettings,
+    ResolvedProjectSettings,
+    resolve_project_settings,
+)
 
 runner = CliRunner()
 app_setup_module = importlib.import_module("telegraph.util.app_setup")
@@ -86,20 +91,27 @@ def test_load_context_data_requires_project_config(
     monkeypatch, tmp_path: Path
 ):
     cli_module.config = None
-    config = ProjectSettings(
+    raw_config = ProjectSettings(
         project_name="demo_project",
         username="demo_user",
-        host="smtp.example.com",
         from_address="sender@example.com",
     )
-    observed: list[tuple[ProjectSettings, bool, Path | None]] = []
+    config = resolve_project_settings(
+        app_config=AppSettings(
+            host="smtp.example.com",
+            port=587,
+            use_tls=True,
+        ),
+        project_settings=raw_config,
+    )
+    observed: list[tuple[ResolvedProjectSettings, bool, Path | None]] = []
 
     def fake_handle_project_config(project_name: str | None = None):
         return config
 
     def fake_load_context_data(
         *,
-        config: ProjectSettings,
+        config: ResolvedProjectSettings,
         write_to_file: bool,
         data_file: Path | None,
     ):
@@ -161,7 +173,6 @@ def test_load_context_data_end_to_end(monkeypatch, tmp_path: Path):
     project_config = ProjectSettings(
         project_name="demo",
         username="demo_user",
-        host="smtp.example.com",
         from_address="sender@example.com",
     )
     (project_dir / "telegraph-project-config.yaml").write_text(

@@ -12,7 +12,7 @@ from typing import Annotated
 
 import typer
 
-from .config import ProjectSettings
+from .config import ResolvedProjectSettings
 from .models import Context
 from .service import handle_project_config, send_emails
 from .service import (
@@ -25,7 +25,7 @@ from .util import (
 
 cli = typer.Typer(no_args_is_help=True)
 
-config: ProjectSettings | None = None
+config: ResolvedProjectSettings | None = None
 
 
 @cli.callback()

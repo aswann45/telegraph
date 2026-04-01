@@ -4,7 +4,7 @@ import ssl
 from email.message import EmailMessage
 from typing import Any
 
-from telegraph.config import ProjectSettings
+from telegraph.config import ResolvedProjectSettings
 from telegraph.models import Email
 
 
@@ -22,13 +22,17 @@ class SMTPClient:
         Closes the SMTP connection.
     """
 
-    def __init__(self, config: ProjectSettings, password: str) -> None:
+    def __init__(
+        self,
+        config: ResolvedProjectSettings,
+        password: str,
+    ) -> None:
         """
         Initialize the SMTP client with given configuration.
 
         Parameters
         ----------
-        config : ProjectSettings
+        config : ResolvedProjectSettings
             The project settings with SMTP server configuration.
         password : str
             Password to login to server for username specified in config file.

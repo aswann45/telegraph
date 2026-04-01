@@ -41,7 +41,7 @@ def make_yaml_config_file(
     if not location.exists():
         location.parent.mkdir(parents=True, exist_ok=True)
         with open(location, "a") as f:
-            yaml.dump(settings.model_dump(), f)
+            yaml.dump(settings.model_dump(exclude_none=True), f)
             typer.echo(f"Created config file at {str(location)}.")
     else:
         typer.echo(f"File {str(location)} already exists. Skipping.")
@@ -70,8 +70,6 @@ def app_setup() -> None:
 def new_project_setup(project_name: str) -> None:
     app_config = AppSettings()
 
-    config = ProjectSettings(project_name=project_name)
-
     typer.echo("Setting up new project.")
     typer.echo("Creating new project directories.")
     project_dir = Path(app_config.projects_dir) / project_name
@@ -88,8 +86,15 @@ def new_project_setup(project_name: str) -> None:
     typer.echo("Done.")
 
     typer.echo("Creating project config.")
+    config = ProjectSettings(
+        project_name=project_name,
+        template_path="templates",
+        build_path="build",
+        data_file="data.csv",
+    )
     make_yaml_config_file(
-        settings=config, location=Path(config.project_config_file)
+        settings=config,
+        location=project_dir / "telegraph-project-config.yaml",
     )
     typer.echo("Done.")
 
