@@ -1,10 +1,8 @@
 """
-Email and templating models for Telegraph.
+Public model exports for Telegraph.
 
-Defines:
-- Data structures for email content (subject, body, recipients, attachments).
-- Template context models supporting arbitrary extra fields.
-- Factory methods to render models into EmailContent instances.
+Re-exports validated email content and template context models for convenient
+imports from the `telegraph.models` namespace.
 """
 
 from .email import Email, EmailContent

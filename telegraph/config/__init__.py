@@ -1,8 +1,8 @@
 """
 Configuration subpackage for Telegraph.
 
-Contains Pydantic settings models for application-wide and SMTP configuration,
-with support for environment variables, YAML files, and .env loading.
+Re-exports application settings models and project configuration helpers used
+to load and resolve Telegraph runtime configuration.
 """
 
 from .app_settings import AppSettings

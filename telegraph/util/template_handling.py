@@ -1,9 +1,8 @@
 """
 Template loading and rendering utilities.
 
-Provides:
-- Functions to auto-discover templates in a directory.
-- Helpers to convert rendered HTML to plain-text when needed.
+Provides helpers for converting rendered HTML to plain text and discovering
+template files within a project directory.
 """
 
 from pathlib import Path
@@ -22,6 +21,7 @@ def html_to_plain(html: str) -> str:
 
     Returns
     -------
+    str
         The converted plaintext string.
     """
     converter = html2text.HTML2Text()
@@ -48,15 +48,15 @@ def discover_templates(
     ----------
     template_dir : Path
         Directory in which to search for templates.
-    suffixes : list of str, optional
+    suffixes : list[str] | None, optional
         File extensions to include (including the dot). Defaults to [".j2",
         ".jinja2"].
-    recursive : bool, optional
+    recursive : bool, default=True
         Whether to search subdirectories recursively. Defaults to True.
 
     Returns
     -------
-    list of str
+    list[str]
         Template paths relative to `template_dir` in POSIX style,
         suitable for passing to Jinja2 `Environment.get_template`.
     """

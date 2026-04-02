@@ -1,8 +1,8 @@
 """
 Entry point for the Telegraph CLI from Poetry.
 
-Invokes the main application logic when running:
-    telegraph
+Invokes the `telegraph` command-line interface when the installed console
+script entrypoint is executed.
 """
 
 from telegraph.cli import cli

@@ -1,10 +1,8 @@
 """
 File handling utilities for Telegraph.
 
-Offers:
-- Readers for CSV, JSON, YAML, and Excel files returning uniform dict/list
-structures.
-- Helpers to resolve paths, watch for changes, and normalize file contents.
+Provides readers for supported project data formats and normalizes them into a
+shared list-of-dictionaries structure used by the rest of the application.
 """
 
 import csv
@@ -27,7 +25,7 @@ def read_csv_file(path: Path) -> list[dict[str, Any]]:
 
     Returns
     -------
-    list of dict
+    list[dict[str, Any]]
         Each row as a dictionary.
     """
     with path.open(mode="r", encoding="utf-8") as f:
@@ -46,8 +44,13 @@ def read_yaml_file(path: Path) -> list[dict[str, Any]]:
 
     Returns
     -------
-    list of dict
+    list[dict[str, Any]]
         Parsed YAML content as a list. Wraps single mappings in a list.
+
+    Raises
+    ------
+    ValueError
+        If the YAML root is neither a mapping nor a list of mappings.
     """
     with path.open(mode="r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
@@ -70,8 +73,13 @@ def read_json_file(path: Path) -> list[dict[str, Any]]:
 
     Returns
     -------
-    list of dict
+    list[dict[str, Any]]
         Parsed JSON content as a list. Wraps single dicts in a list.
+
+    Raises
+    ------
+    ValueError
+        If the JSON root is neither a mapping nor a list of mappings.
     """
     with path.open(mode="r", encoding="utf-8") as f:
         data = json.load(f)
@@ -98,7 +106,7 @@ def read_excel_file(
 
     Returns
     -------
-    list of dict
+    list[dict[str, Any]]
         Each row as a dictionary.
     """
     df = pd.read_excel(path, sheet_name=sheet_name, engine="openpyxl")
@@ -106,6 +114,26 @@ def read_excel_file(
 
 
 def read_data_file(path: Path, **kwargs: Any) -> list[dict[str, Any]]:
+    """
+    Read a supported project data file.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the input data file.
+    **kwargs : Any
+        Additional reader-specific keyword arguments, such as Excel options.
+
+    Returns
+    -------
+    list[dict[str, Any]]
+        Parsed records from the input file.
+
+    Raises
+    ------
+    ValueError
+        If the file suffix is not one of the supported formats.
+    """
     if path.suffix == ".csv":
         return read_csv_file(path)
     elif path.suffix == ".json":

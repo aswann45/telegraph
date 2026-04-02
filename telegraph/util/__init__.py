@@ -1,10 +1,8 @@
 """
-Utility functions and base classes for Telegraph.
+Public utility exports for Telegraph.
 
-Provides:
-- File I/O helpers.
-- Pipeline base classes for mail-merge workflows.
-- Template discovery and rendering utilities.
+Re-exports setup and file-loading helpers used by the CLI and application
+code.
 """
 
 from .app_setup import app_setup, new_project_setup

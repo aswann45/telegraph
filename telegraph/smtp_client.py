@@ -1,3 +1,10 @@
+"""
+SMTP client implementation for Telegraph.
+
+Builds MIME email messages from resolved Telegraph models and sends them
+through an authenticated SMTP connection.
+"""
+
 import mimetypes
 import smtplib
 import ssl
@@ -12,14 +19,12 @@ class SMTPClient:
     """
     SMTP client for sending emails.
 
-    Methods
-    -------
-    connect()
-        Establishes connection and logs in.
-    send_email(email: Email)
-        Sends an email using the established connection.
-    disconnect()
-        Closes the SMTP connection.
+    Parameters
+    ----------
+    config : ResolvedProjectSettings
+        Resolved project configuration containing SMTP connection details.
+    password : str
+        Password used to authenticate with the SMTP server.
     """
 
     def __init__(
@@ -59,7 +64,18 @@ class SMTPClient:
         exc_val: BaseException | None,
         exc_tb: Any | None,
     ) -> None:
-        """Exit the runtime context and close the SMTP connection."""
+        """
+        Exit the runtime context and close the SMTP connection.
+
+        Parameters
+        ----------
+        exc_type : type | None
+            Exception type raised in the context block, if any.
+        exc_val : BaseException | None
+            Exception instance raised in the context block, if any.
+        exc_tb : Any | None
+            Traceback associated with the exception, if any.
+        """
         self.disconnect()
 
     def connect(self, password: str) -> None:

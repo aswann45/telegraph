@@ -49,6 +49,12 @@ def make_yaml_config_file(
 
 
 def app_setup() -> None:
+    """
+    Create Telegraph application directories and global config.
+
+    Creates the default projects directory, config directory, and global YAML
+    config file when they do not already exist.
+    """
     config = AppSettings()
 
     # create default directories
@@ -68,6 +74,14 @@ def app_setup() -> None:
 
 
 def new_project_setup(project_name: str) -> None:
+    """
+    Create a new Telegraph project scaffold.
+
+    Parameters
+    ----------
+    project_name : str
+        Name of the project directory to create under the projects root.
+    """
     app_config = AppSettings()
 
     typer.echo("Setting up new project.")

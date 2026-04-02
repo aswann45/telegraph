@@ -1,11 +1,8 @@
 """
-Pydantic models for email content.
+Email content models for Telegraph.
 
-Includes:
-- `Email`: subject, body (plain + HTML), recipients, CC/BCC, reply-to,
-attachments.
-- `SMTPClient`: Context manager for SMTP connection and sending email content.
-- Validation logic for required fields and attachment paths.
+Provides the validated email payload used between template rendering and SMTP
+delivery.
 """
 
 from collections.abc import Sequence
@@ -18,7 +15,7 @@ class Email(BaseModel):
     """
     Data model for an email message.
 
-    Parameters
+    Attributes
     ----------
     subject : str
         Subject of the email.

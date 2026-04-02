@@ -1,11 +1,9 @@
 """
 Telegraph — a lightweight Jinja2-based email templating and sending library.
 
-This package provides:
-- Pydantic models to define email content and configuration.
-- Utilities for loading/rendering Jinja templates.
-- An SMTP client for sending messages.
-- A CLI for mail-merge workflows.
+The top-level package re-exports the main public models, config helpers,
+template utilities, and setup functions used by Telegraph applications and
+CLI workflows.
 """
 
 from .config import (

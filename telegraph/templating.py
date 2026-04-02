@@ -1,11 +1,8 @@
 """
-Template handling for Telegraph.
+Template rendering utilities for Telegraph.
 
-Defines:
-- `EmailTemplate`: ties together subject/text/HTML template filenames with
-context.
-- `TemplateRenderer`: wraps Jinja2 environment setup.
-- `render()` methods to produce `EmailContent` from templates.
+Provides models and helpers for combining Jinja templates with validated
+context data to produce renderable email objects.
 """
 
 from __future__ import annotations
@@ -24,18 +21,18 @@ from telegraph.util.template_handling import html_to_plain
 
 class EmailTemplate(BaseModel):
     """
-    Defines template filenames and context for rendering an email.
+    Template file references and context for rendering an email.
 
-    Parameters
+    Attributes
     ----------
-    subject_template : str
-        Filename of the Jinja template for the email subject.
-    text_template : str | None
-        Filename of the Jinja template for the plain-text body.
-    html_template : str | None
-        Filename of the Jinja template for the HTML body.
-    context : TemplateContext
-        Context data for rendering all templates.
+    subject_template : Path
+        Path to the Jinja template for the message subject.
+    text_template : Path | None
+        Optional path to the Jinja template for the plain-text body.
+    html_template : Path | None
+        Optional path to the Jinja template for the HTML body.
+    context : Context
+        Context data used to render all configured templates.
     """
 
     subject_template: Path = Field(
@@ -79,20 +76,30 @@ class EmailTemplate(BaseModel):
         ----------
         renderer : TemplateRenderer
             The Jinja2 renderer instance.
-        from_address : str
+        from_address : EmailStr
             Sender email address.
-        to_addresses : list[str]
-            List of recipient email addresses.
-        cc : list[str] | None
-            CC recipients.
-        bcc : list[str] | None
-            BCC recipients.
-        reply_to : list[str] | None
-            Reply-To addresses.
-        attachments : list[Path] | None
-            File paths to attach.
-        to_file : bool
-            Write rendered template to file. Default False.
+        to_addresses : Sequence[EmailStr]
+            Primary recipient addresses.
+        cc : Sequence[EmailStr] | None, optional
+            Carbon-copy recipients.
+        bcc : Sequence[EmailStr] | None, optional
+            Blind-carbon-copy recipients.
+        reply_to : Sequence[EmailStr] | None, optional
+            Reply-to addresses.
+        attachments : Sequence[Path] | None, optional
+            File paths to attach to the rendered email.
+        to_file : bool, default=False
+            Whether to also write rendered templates to disk.
+
+        Returns
+        -------
+        Email
+            Rendered email content ready for delivery.
+
+        Raises
+        ------
+        ValueError
+            If neither a text nor HTML body template is available.
         """
         subject = renderer.render_template(
             self.subject_template.name, self.context
@@ -137,12 +144,12 @@ class EmailTemplate(BaseModel):
 
 class TemplateRenderer:
     """
-    Renders Jinja templates from a given directory.
+    Jinja-backed renderer for Telegraph template directories.
 
     Parameters
     ----------
     template_dir : Path
-        Directory containing Jinja template files.
+        Directory containing Jinja templates for a project.
     """
 
     def __init__(self, template_dir: Path) -> None:
@@ -166,15 +173,22 @@ class TemplateRenderer:
         ----------
         template_name : str
             Filename of the template to render.
-        context : TemplateContext
+        context : Context
             Data context for rendering.
-        to_file : bool
-            Write rendered template to file. Default False.
+        to_file : bool, default=False
+            Whether to also write the rendered output to disk.
+        extension : str | None, optional
+            File extension to use when writing rendered output to disk.
 
         Returns
         -------
         str
             The rendered template string.
+
+        Raises
+        ------
+        ValueError
+            If `to_file` is True and no output extension is provided.
         """
         template = self.env.get_template(template_name)
         rendered_template = template.render(**context.model_dump())

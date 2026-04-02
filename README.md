@@ -66,17 +66,19 @@ email = tpl.render(
 )
 ```
 
-`SMTPClient` sends the rendered `Email`:
+`SMTPClient` sends the rendered `Email`. In application code, the easiest
+way to produce a runtime-ready config is to resolve your project settings
+first:
 
 ```python
-from telegraph import ProjectSettings, SMTPClient
+from telegraph import ProjectSettings, SMTPClient, resolve_project_settings
 
-config = ProjectSettings(
+project_config = ProjectSettings(
     project_name="demo_project",
     username="smtp-user",
-    host="smtp.example.com",
     from_address="me@example.com",
 )
+config = resolve_project_settings(project_settings=project_config)
 
 with SMTPClient(config, password="secret") as client:
     client.send_email(email)
@@ -113,22 +115,30 @@ The current CLI flow is:
 ```bash
 .venv/bin/telegraph init
 .venv/bin/telegraph new-project my_project
-.venv/bin/telegraph --project my_project load-context-data
-.venv/bin/telegraph --project my_project send --password '...'
+.venv/bin/telegraph show-config --project my_project
+.venv/bin/telegraph load-context-data --project my_project
+.venv/bin/telegraph send --project my_project --password '...'
 ```
 
 Useful notes:
 
+- `show-config` prints the resolved runtime configuration for a project
 - `load-context-data` reads project data and writes `build/context.json`
 - `send` renders messages and either writes output files or sends through SMTP
 - `send --limit N` processes the first `N` rows
+- config-dependent commands accept `--project` at the command level
+- if you omit `--project`, Telegraph will try to load `telegraph-project-config.yaml` from the current working directory
 - `python -m telegraph --help` shows the current commands
 
 ### Configuration
 Telegraph uses two related configuration models:
 
 - `AppSettings` for global defaults such as the projects directory and default SMTP host/port
-- `ProjectSettings` for per-project settings such as username, sender address, template path, and optional defaults for cc/bcc/reply-to/attachments
+- `ProjectSettings` for per-project settings such as username, sender address, template path, build path, data file, and optional defaults for cc/bcc/reply-to/attachments
+
+Runtime commands use a resolved config derived from both models. Project-level
+values override app defaults, and project-relative paths such as `templates`,
+`build`, and `data.csv` are resolved against the project directory automatically.
 
 The generated YAML files are placeholders by default, so you will need to replace values like `host`, `username`, and `from_address` before sending real mail.
 

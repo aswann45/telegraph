@@ -1,10 +1,8 @@
 """
-Base classes and functions for mail-merge pipelines.
+Service-layer functions for Telegraph project workflows.
 
-Defines:
-- `PipelineStep`, `Pipeline`, and `Context` abstractions.
-- Common utilities for iterating through data records and rendering/sending
-emails.
+Coordinates resolved configuration, context loading, template rendering, and
+SMTP sending for CLI-driven project execution.
 """
 
 import json
@@ -31,7 +29,20 @@ APP_CONFIG = AppSettings()
 def handle_project_config(
     project_name: str | None = None,
 ) -> ResolvedProjectSettings:
-    """Resolve project config into a runtime-ready settings object."""
+    """
+    Resolve project config into a runtime-ready settings object.
+
+    Parameters
+    ----------
+    project_name : str | None, optional
+        Project name to resolve. When omitted, Telegraph loads config from the
+        current working directory.
+
+    Returns
+    -------
+    ResolvedProjectSettings
+        Fully resolved runtime settings for the requested project.
+    """
     return resolve_project_settings(
         project_name=project_name,
         app_config=APP_CONFIG,
@@ -45,6 +56,27 @@ def send_emails(
     limit: int | None = None,
     to_file: bool = False,
 ) -> None:
+    """
+    Render and send a sequence of project emails.
+
+    Parameters
+    ----------
+    config : ResolvedProjectSettings
+        Runtime-ready project configuration.
+    password : str
+        SMTP password for the configured username.
+    data_file : Path | None, optional
+        Optional override for the source data file.
+    limit : int | None, optional
+        Maximum number of rows to process from the start of the dataset.
+    to_file : bool, default=False
+        When True, render templates to files without sending them.
+
+    Raises
+    ------
+    ValueError
+        If `limit` is less than 1.
+    """
     if limit is not None and limit < 1:
         raise ValueError("limit must be at least 1")
 
@@ -92,6 +124,23 @@ def load_context_data(
     write_to_file: bool = True,
     data_file: Path | None = None,
 ) -> list[Context]:
+    """
+    Load and normalize project context data.
+
+    Parameters
+    ----------
+    config : ResolvedProjectSettings
+        Runtime-ready project configuration.
+    write_to_file : bool, default=True
+        When True, write normalized context data to `build/context.json`.
+    data_file : Path | None, optional
+        Optional override for the source data file.
+
+    Returns
+    -------
+    list[Context]
+        Validated context objects ready for rendering.
+    """
     if data_file is None:
         file_data = read_data_file(config.data_file)
     else:

@@ -30,16 +30,28 @@ class ProjectSettings(BaseModel):
     should use `ResolvedProjectSettings`, which merges these project values
     with `AppSettings` defaults and resolves file paths.
 
-    Parameters
+    Attributes
     ----------
+    project_name : str
+        User-facing name of the Telegraph project.
     username : str
-        Username for SMTP authentication.
+        SMTP username used for authentication.
     use_tls : bool | None
-        Flag to use TLS. Falls back to app settings when unset.
+        Project override for TLS behavior.
     host : str | None
-        SMTP server hostname. Falls back to app settings when unset.
+        Project override for the SMTP host.
     port : int | None
-        SMTP server port. Falls back to app settings when unset.
+        Project override for the SMTP port.
+    from_address : EmailStr
+        Default sender address for rendered mail.
+    project_config_file : str | None
+        Optional explicit path to the project YAML file.
+    template_path : str | None
+        Optional project-relative or absolute template directory.
+    build_path : str | None
+        Optional project-relative or absolute build directory.
+    data_file : str | None
+        Optional project-relative or absolute source data file.
     """
 
     project_name: str = "changethis"
@@ -72,6 +84,7 @@ class ProjectSettings(BaseModel):
 
     @model_validator(mode="after")
     def _enforce_non_default_secrets(self) -> Self:
+        """Warn when required project credentials use placeholder values."""
         self._check_default_secret("username", self.username)
         self._check_default_secret("from_address", self.from_address)
         return self
@@ -83,6 +96,31 @@ class ResolvedProjectSettings(BaseModel):
 
     This model merges project-level YAML with app defaults and normalizes
     project-relative paths into absolute `Path` values.
+
+    Attributes
+    ----------
+    project_name : str
+        User-facing name of the Telegraph project.
+    username : str
+        SMTP username used for authentication.
+    use_tls : bool
+        Effective TLS setting after project and app defaults are merged.
+    host : str
+        Effective SMTP host.
+    port : int
+        Effective SMTP port.
+    from_address : EmailStr
+        Effective sender address.
+    project_config_file : Path
+        Absolute path to the project YAML file used for resolution.
+    project_dir : Path
+        Absolute directory containing the project config file.
+    template_path : Path
+        Absolute directory containing the project's templates.
+    build_path : Path
+        Absolute build directory for generated artifacts.
+    data_file : Path
+        Absolute path to the default project data file.
     """
 
     project_name: str
@@ -111,7 +149,22 @@ def get_project_config_path(
     project_name: str | None = None,
     app_config: AppSettings | None = None,
 ) -> Path:
-    """Return the expected config-file path for a project."""
+    """
+    Return the expected config-file path for a project.
+
+    Parameters
+    ----------
+    project_name : str | None, optional
+        Name of the project to locate. When omitted, Telegraph looks for a
+        config file in the current working directory.
+    app_config : AppSettings | None, optional
+        Application defaults used to derive the projects directory.
+
+    Returns
+    -------
+    Path
+        Absolute path to the expected project configuration file.
+    """
     config = app_config or AppSettings()
 
     if project_name is None:
@@ -126,7 +179,29 @@ def load_project_settings(
     project_name: str | None = None,
     app_config: AppSettings | None = None,
 ) -> ProjectSettings:
-    """Load the raw project YAML config for a project."""
+    """
+    Load raw project settings from YAML.
+
+    Parameters
+    ----------
+    project_name : str | None, optional
+        Name of the project to load. When omitted, Telegraph loads the config
+        file from the current working directory.
+    app_config : AppSettings | None, optional
+        Application defaults used to derive the project path.
+
+    Returns
+    -------
+    ProjectSettings
+        Parsed project-scoped settings from YAML.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the expected project config file does not exist.
+    ValueError
+        If the YAML root is not a mapping.
+    """
     project_config_file = get_project_config_path(
         project_name=project_name,
         app_config=app_config,
@@ -173,7 +248,23 @@ def resolve_project_settings(
     app_config: AppSettings | None = None,
     project_settings: ProjectSettings | None = None,
 ) -> ResolvedProjectSettings:
-    """Merge app defaults with project settings into runtime config."""
+    """
+    Merge app defaults with project settings into runtime config.
+
+    Parameters
+    ----------
+    project_name : str | None, optional
+        Project name to resolve. Ignored when `project_settings` is provided.
+    app_config : AppSettings | None, optional
+        Application defaults to use during resolution.
+    project_settings : ProjectSettings | None, optional
+        Raw project settings to resolve directly.
+
+    Returns
+    -------
+    ResolvedProjectSettings
+        Runtime-ready settings with merged defaults and absolute paths.
+    """
     config = app_config or AppSettings()
     project = project_settings or load_project_settings(
         project_name=project_name,
