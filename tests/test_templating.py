@@ -10,7 +10,7 @@ from telegraph.templating import (
     TemplateContext,
     TemplateRenderer,
 )
-from telegraph.util.template_handling import html_to_plain
+from telegraph.util.template_handling import discover_templates, html_to_plain
 
 re_html_tag = re.compile(r"<[a-z]/?>")
 
@@ -25,6 +25,7 @@ def test_html_to_plain_returns_str_and_no_tags(s: str) -> None:
 
 
 def test_template_renderer_and_email_template(tmp_path: Path) -> None:
+    """Templates should render into a complete Email object."""
     # create a small template directory
     tpl_dir = tmp_path / "templates"
     tpl_dir.mkdir()
@@ -67,6 +68,7 @@ def test_template_renderer_and_email_template(tmp_path: Path) -> None:
 
 
 def test_email_template_fallback_html_to_plain(tmp_path: Path) -> None:
+    """HTML-only templates should fall back to generated plain text."""
     tpl_dir = tmp_path / "templates"
     tpl_dir.mkdir()
     (tpl_dir / "subject.j2").write_text("Subject")
@@ -94,6 +96,7 @@ def test_email_template_fallback_html_to_plain(tmp_path: Path) -> None:
 
 
 def test_email_template_raises_value_error(tmp_path: Path) -> None:
+    """EmailTemplate should require at least one body template."""
     tpl_dir = tmp_path / "templates"
     tpl_dir.mkdir()
     (tpl_dir / "subject.j2").write_text("Subject")
@@ -113,3 +116,72 @@ def test_email_template_raises_value_error(tmp_path: Path) -> None:
             from_address="a@b.com",
             to_addresses=["x@y.com"],
         )
+
+
+def test_discover_templates_returns_relative_paths(tmp_path: Path) -> None:
+    """Template discovery should return sorted relative template paths."""
+    template_dir = tmp_path / "templates"
+    nested_dir = template_dir / "nested"
+    nested_dir.mkdir(parents=True)
+    (template_dir / "subject.txt.j2").write_text("Subject")
+    (nested_dir / "body.html.j2").write_text("<p>Hello</p>")
+    (template_dir / "notes.txt").write_text("ignore me")
+
+    templates = discover_templates(template_dir)
+
+    assert templates == ["nested/body.html.j2", "subject.txt.j2"]
+
+
+def test_discover_templates_non_recursive_ignores_nested(tmp_path: Path) -> None:
+    """Non-recursive discovery should ignore nested template files."""
+    template_dir = tmp_path / "templates"
+    nested_dir = template_dir / "nested"
+    nested_dir.mkdir(parents=True)
+    (template_dir / "subject.txt.j2").write_text("Subject")
+    (nested_dir / "body.html.j2").write_text("<p>Hello</p>")
+
+    templates = discover_templates(template_dir, recursive=False)
+
+    assert templates == ["subject.txt.j2"]
+
+
+def test_render_template_to_file_writes_output(tmp_path: Path) -> None:
+    """Rendering to file should create a build artifact on disk."""
+    template_dir = tmp_path / "templates"
+    template_dir.mkdir()
+    (template_dir / "body.txt.j2").write_text("Hello {{ name }}")
+
+    renderer = TemplateRenderer(template_dir)
+    context = TemplateContext(
+        subject="Test Subject",
+        to_addresses=["x@y.com"],
+        name="Alice",
+    )
+
+    rendered = renderer.render_template(
+        "body.txt.j2",
+        context,
+        to_file=True,
+        extension=".txt",
+    )
+
+    build_dir = tmp_path / "build"
+    files = list(build_dir.iterdir())
+
+    assert rendered == "Hello Alice"
+    assert len(files) == 1
+    assert files[0].suffix == ".txt"
+    assert files[0].read_text() == "Hello Alice"
+
+
+def test_render_template_to_file_requires_extension(tmp_path: Path) -> None:
+    """Rendering to file should require an explicit output extension."""
+    template_dir = tmp_path / "templates"
+    template_dir.mkdir()
+    (template_dir / "body.txt.j2").write_text("Hello")
+
+    renderer = TemplateRenderer(template_dir)
+    context = TemplateContext(to_addresses=["x@y.com"])
+
+    with pytest.raises(ValueError, match="Must specify file extension"):
+        renderer.render_template("body.txt.j2", context, to_file=True)

@@ -97,6 +97,7 @@ def make_runtime_config(tmp_path: Path) -> ResolvedProjectSettings:
 
 
 def test_send_emails_limit_sends_first_n(monkeypatch, tmp_path: Path):
+    """send_emails should process only the first N contexts when limited."""
     config = make_runtime_config(tmp_path)
     contexts = [
         Context(subject="one", to_addresses=["one@example.com"]),
@@ -128,6 +129,7 @@ def test_send_emails_limit_sends_first_n(monkeypatch, tmp_path: Path):
 
 
 def test_send_emails_rejects_non_positive_limit(tmp_path: Path):
+    """send_emails should reject zero or negative limits."""
     config = make_runtime_config(tmp_path)
 
     with pytest.raises(ValueError, match="limit must be at least 1"):

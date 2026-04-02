@@ -44,6 +44,7 @@ def configure_test_app(monkeypatch, tmp_path: Path) -> AppSettings:
 
 
 def test_init_does_not_require_project_config(monkeypatch):
+    """The init command should not attempt to resolve project config."""
     called = {"app_setup": False}
 
     def fail_handle_project_config(project_name: str | None = None):
@@ -64,6 +65,7 @@ def test_init_does_not_require_project_config(monkeypatch):
 
 
 def test_new_project_does_not_require_project_config(monkeypatch):
+    """The new-project command should not attempt to resolve project config."""
     created: list[str] = []
 
     def fail_handle_project_config(project_name: str | None = None):
@@ -88,6 +90,7 @@ def test_new_project_does_not_require_project_config(monkeypatch):
 def test_load_context_data_requires_project_config(
     monkeypatch, tmp_path: Path
 ):
+    """load-context-data should resolve project config before loading data."""
     raw_config = ProjectSettings(
         project_name="demo_project",
         username="demo_user",
@@ -141,6 +144,7 @@ def test_load_context_data_requires_project_config(
 
 
 def test_show_config_uses_resolved_project_config(monkeypatch):
+    """show-config should print the resolved runtime settings."""
     config = ResolvedProjectSettings(
         project_name="demo_project",
         username="demo_user",
@@ -173,6 +177,7 @@ def test_show_config_uses_resolved_project_config(monkeypatch):
 
 
 def test_show_config_accepts_project_after_subcommand(monkeypatch):
+    """show-config should accept a command-level project option."""
     config = ResolvedProjectSettings(
         project_name="demo_project",
         username="demo_user",
@@ -204,6 +209,7 @@ def test_show_config_accepts_project_after_subcommand(monkeypatch):
 
 
 def test_new_project_end_to_end(monkeypatch, tmp_path: Path):
+    """new-project should scaffold the expected project files and folders."""
     app_config = configure_test_app(monkeypatch, tmp_path)
 
     init_result = runner.invoke(cli, ["init"])
@@ -222,6 +228,7 @@ def test_new_project_end_to_end(monkeypatch, tmp_path: Path):
 
 
 def test_load_context_data_end_to_end(monkeypatch, tmp_path: Path):
+    """load-context-data should normalize CSV input into build/context.json."""
     app_config = configure_test_app(monkeypatch, tmp_path)
 
     project_dir = Path(app_config.projects_dir) / "demo"
@@ -258,6 +265,7 @@ def test_load_context_data_end_to_end(monkeypatch, tmp_path: Path):
 
 
 def test_show_config_end_to_end(monkeypatch, tmp_path: Path):
+    """show-config should show resolved project-relative paths."""
     app_config = configure_test_app(monkeypatch, tmp_path)
 
     project_dir = Path(app_config.projects_dir) / "demo"

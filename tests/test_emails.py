@@ -3,6 +3,8 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from telegraph.config import (
     AppSettings,
     ProjectSettings,
@@ -63,6 +65,7 @@ class DummySMTP:
 def test_smtp_client_connect_send_and_disconnect(
     monkeypatch: Any, tmp_path: Path
 ) -> None:
+    """SMTPClient should connect, send, and disconnect cleanly."""
     monkeypatch.setattr(smtplib, "SMTP", DummySMTP)
 
     config = make_runtime_config(tmp_path)
@@ -124,6 +127,7 @@ class DummySMTPWithAttachmentCapture:
 
 
 def test_attachment_handling(monkeypatch: Any, tmp_path: Path) -> None:
+    """Attachments should be added to the outgoing MIME message."""
     file_path = tmp_path / "report.txt"
     file_path.write_text("Quarterly revenue report goes here.")
 
@@ -189,3 +193,47 @@ def test_attachment_handling(monkeypatch: Any, tmp_path: Path) -> None:
 
     client.disconnect()
     assert server.quit_called
+
+
+def test_send_email_requires_connected_server(tmp_path: Path) -> None:
+    """Sending without an SMTP connection should raise an error."""
+    config = make_runtime_config(tmp_path)
+    client = SMTPClient(config, password="pass")
+    email = EmailContent(
+        subject="Test",
+        body="Body",
+        html_body=None,
+        from_address=config.from_address,
+        to_addresses=["to@example.com"],
+    )
+
+    with pytest.raises(smtplib.SMTPException, match="not connected"):
+        client.send_email(email)
+
+
+def test_send_email_sets_cc_and_reply_to_headers(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    """SMTP messages should include CC and Reply-To headers when provided."""
+    monkeypatch.setattr(smtplib, "SMTP", DummySMTP)
+
+    config = make_runtime_config(tmp_path)
+
+    with SMTPClient(config, password="pass") as client:
+        email = EmailContent(
+            subject="Test",
+            body="Body",
+            html_body=None,
+            from_address=config.from_address,
+            to_addresses=["to@example.com"],
+            cc=["cc@example.com"],
+            reply_to=["reply@example.com"],
+        )
+
+        client.send_email(email)
+
+        server = client._server
+        assert isinstance(server, DummySMTP)
+        message, _, _ = server.messages[0]
+        assert message["Cc"] == "cc@example.com"
+        assert message["Reply-To"] == "reply@example.com"
