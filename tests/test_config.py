@@ -1,16 +1,15 @@
+import json
 from pathlib import Path
 
-import json
-
-import yaml
 import pytest
+import yaml
 
 from telegraph.config import (
     AppSettings,
-    get_project_config_path,
-    load_project_settings,
     ProjectSettings,
     ResolvedProjectSettings,
+    get_project_config_path,
+    load_project_settings,
     resolve_project_settings,
 )
 
@@ -115,7 +114,9 @@ def test_load_project_settings_raises_for_missing_file(tmp_path: Path):
         ),
     )
 
-    with pytest.raises(FileNotFoundError, match="Could not find a config file"):
+    with pytest.raises(
+        FileNotFoundError, match="Could not find a config file"
+    ):
         load_project_settings("missing_project", app_config=app_config)
 
 
@@ -135,7 +136,9 @@ def test_load_project_settings_rejects_non_mapping_yaml_root(tmp_path: Path):
         yaml.dump(["not", "a", "mapping"])
     )
 
-    with pytest.raises(ValueError, match="Project config must contain a YAML mapping"):
+    with pytest.raises(
+        ValueError, match="Project config must contain a YAML mapping"
+    ):
         load_project_settings("demo_project", app_config=app_config)
 
 

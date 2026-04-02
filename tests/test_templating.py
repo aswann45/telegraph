@@ -132,7 +132,9 @@ def test_discover_templates_returns_relative_paths(tmp_path: Path) -> None:
     assert templates == ["nested/body.html.j2", "subject.txt.j2"]
 
 
-def test_discover_templates_non_recursive_ignores_nested(tmp_path: Path) -> None:
+def test_discover_templates_non_recursive_ignores_nested(
+    tmp_path: Path,
+) -> None:
     """Non-recursive discovery should ignore nested template files."""
     template_dir = tmp_path / "templates"
     nested_dir = template_dir / "nested"
